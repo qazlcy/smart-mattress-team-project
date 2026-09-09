@@ -1,0 +1,137 @@
+{
+  "schema_version": 2,
+  "region": {
+    "seed": 42,
+    "train_users": [
+      "SAI",
+      "dgs"
+    ],
+    "test_users": [
+      "gzy"
+    ],
+    "validation_strategy": "chronological 70/30 blocks per known user and action, with a one-frame guard gap",
+    "validation_samples": 432,
+    "train_samples": 966,
+    "train_evaluation_duplicate_frames": 0,
+    "labelled_users": 3,
+    "criterion": "primary: boundary tolerance row start/end 3/4, col start/end 4/4 cells; IoU >= 0.5 also reported",
+    "known_validation": {
+      "parts": 2592,
+      "tolerance_hits": 2592,
+      "exact_hits": 2554,
+      "iou_hits": 2592,
+      "boundary_tolerance_accuracy_pct": 100.0,
+      "exact_box_accuracy_pct": 98.53,
+      "iou_0_5_accuracy_pct": 100.0,
+      "mean_iou": 0.9985
+    },
+    "new_users": {
+      "parts": 4320,
+      "tolerance_hits": 3284,
+      "exact_hits": 74,
+      "iou_hits": 2428,
+      "boundary_tolerance_accuracy_pct": 76.02,
+      "exact_box_accuracy_pct": 1.71,
+      "iou_0_5_accuracy_pct": 56.2,
+      "mean_iou": 0.5247
+    }
+  },
+  "weight": {
+    "known_users": {
+      "count": 23,
+      "mae_kg": 4.513,
+      "interval_hit_rate_pct": 60.87,
+      "interval_or_adjacent_hit_rate_pct": 95.65,
+      "interval_or_adjacent_3kg_hit_rate_pct": 65.22,
+      "within_3kg_rate_pct": 43.48,
+      "far_miss_rate_pct": 4.35
+    },
+    "new_users": {
+      "count": 10,
+      "mae_kg": 4.95,
+      "interval_hit_rate_pct": 70.0,
+      "interval_or_adjacent_hit_rate_pct": 100.0,
+      "interval_or_adjacent_3kg_hit_rate_pct": 70.0,
+      "within_3kg_rate_pct": 50.0,
+      "far_miss_rate_pct": 0.0
+    },
+    "new_user_single_frames": {
+      "count": 630,
+      "mae_kg": 9.9,
+      "interval_hit_rate_pct": 36.67,
+      "interval_or_adjacent_hit_rate_pct": 81.9,
+      "interval_or_adjacent_3kg_hit_rate_pct": 40.16,
+      "within_3kg_rate_pct": 18.57,
+      "far_miss_rate_pct": 18.1
+    },
+    "new_users_without_baseline": {
+      "count": 10,
+      "mae_kg": 5.84,
+      "interval_hit_rate_pct": 40.0,
+      "interval_or_adjacent_hit_rate_pct": 100.0,
+      "interval_or_adjacent_3kg_hit_rate_pct": 50.0,
+      "within_3kg_rate_pct": 30.0,
+      "far_miss_rate_pct": 0.0
+    },
+    "train_users": [
+      "zmw",
+      "lxy1",
+      "whl",
+      "lzx1",
+      "hxr",
+      "hyh",
+      "sbr",
+      "syz",
+      "ljy",
+      "SAI",
+      "ghx",
+      "lyp",
+      "gjh",
+      "lrc",
+      "lcy",
+      "wcy",
+      "dgs",
+      "dwk1",
+      "yl",
+      "ghb",
+      "wjy",
+      "wc1",
+      "zhr"
+    ],
+    "test_users": [
+      "tjs",
+      "nys",
+      "whc",
+      "gzy",
+      "stanl",
+      "zxx",
+      "hpy",
+      "jhy",
+      "ltr",
+      "wzh"
+    ],
+    "seed": 42,
+    "sampling": "first 3 frames from every available static sequence 1..21; per-user feature median",
+    "known_users_note": "training fit only, not independent validation",
+    "height_input": "measured height available to known and new users; no target weight used during prediction",
+    "baseline": {
+      "available_users": 29,
+      "mean_total_empty_pressure": 5268.27
+    },
+    "test_bin_counts": {
+      "2": 6,
+      "6": 1,
+      "0": 1,
+      "3": 1,
+      "4": 1
+    }
+  },
+  "acceptance": {
+    "region_known_gt95": true,
+    "region_new_gt70": true,
+    "no_region_duplicate_leakage": true,
+    "weight_mae_le5": true,
+    "weight_interval_or_adjacent_ge85": true,
+    "weight_far_miss_lt3": true
+  }
+}
