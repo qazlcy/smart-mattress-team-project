@@ -13,6 +13,10 @@ class ReplayContractTest(unittest.TestCase):
         self.assertEqual(len(result["airbags"]), 4)
         self.assertIn(result["posture"], {"仰卧", "左侧卧", "右侧卧"})
         self.assertIn("规则回退", result["postureSource"])
+        self.assertEqual(len(result["bodyRegions"]), 6)
+        self.assertIn("kg", result["weightPrediction"])
+        self.assertIn("interval", result["weightPrediction"])
+        self.assertGreaterEqual(result["weightPrediction"]["interval"]["index"], 0)
 
     def test_parser_uses_44_row_frames(self):
         with tempfile.NamedTemporaryFile("w", suffix=".txt", delete=False) as f:

@@ -12,11 +12,15 @@ from http import HTTPStatus
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
+from body_weight import BodyRegionCalibrator, WeightCalibrator, average_empty_baseline
 
 # Must match the 44 x 24 tensor expected by sleep_posture.CNN.
 ROWS, COLS = 44, 24
 ROOT = Path(__file__).parent
 DATA_DIR = Path(os.environ.get("MATTRESS_DATA_DIR", ROOT / "data"))
+CALIBRATOR: WeightCalibrator | None = None
+REGION_CALIBRATOR: BodyRegionCalibrator | None = None
+BASELINE_CACHE: dict[str, list[list[float]] | None] = {}
 
 
 def parse_frames(path: Path, limit: int = 180) -> list[list[list[int]]]:
@@ -97,7 +101,27 @@ def predict_posture(frame: list[list[int]]) -> tuple[str | None, str]:
         return None, f"规则回退（CNN 不可用：{type(error).__name__}）"
 
 
-def metrics(frame: list[list[int]]) -> dict:
+def calibrator() -> WeightCalibrator:
+    global CALIBRATOR
+    if CALIBRATOR is None:
+        CALIBRATOR = WeightCalibrator.from_dataset(DATA_DIR) if DATA_DIR.is_dir() else WeightCalibrator.fallback()
+    return CALIBRATOR
+
+
+def region_calibrator() -> BodyRegionCalibrator:
+    global REGION_CALIBRATOR
+    if REGION_CALIBRATOR is None:
+        REGION_CALIBRATOR = BodyRegionCalibrator.from_dataset(DATA_DIR) if DATA_DIR.is_dir() else BodyRegionCalibrator.fallback()
+    return REGION_CALIBRATOR
+
+
+def empty_baseline_for(user: str) -> list[list[float]] | None:
+    if user not in BASELINE_CACHE:
+        BASELINE_CACHE[user] = average_empty_baseline(DATA_DIR / user) if (DATA_DIR / user).is_dir() else None
+    return BASELINE_CACHE[user]
+
+
+def metrics(frame: list[list[int]], user: str = "demo") -> dict:
     flat = [value for row in frame for value in row]
     active = [value for value in flat if value >= 15]
     total = sum(flat)
@@ -110,10 +134,18 @@ def metrics(frame: list[list[int]]) -> dict:
     for index, (start, end) in enumerate(bands, 1):
         mean = sum(sum(row) for row in frame[start:end]) / ((end - start) * COLS)
         airbags.append({"id": f"A{index}", "pressure": round(mean, 1), "state": "充气" if mean > 45 else "保持"})
+    baseline = empty_baseline_for(user)
+    region_model = region_calibrator()
+    regions = region_model.predict(frame, baseline)
+    weight = calibrator().predict(frame, baseline, user)
     return {
         "maxPressure": max(flat), "averagePressure": round(sum(active) / max(len(active), 1), 1),
         "contactAreaIndex": round(len(active) / len(flat) * 100, 1), "posture": posture,
         "postureSource": posture_source, "airbags": airbags,
+        "bodyRegions": regions,
+        "bodyRegionSource": "区域标注近邻模型+空载校正" if region_model.samples and baseline else "区域标注近邻模型" if region_model.samples else "压力轮廓区域划分",
+        "weightPrediction": weight,
+        "emptyBaselineApplied": bool(baseline),
     }
 
 
@@ -130,7 +162,7 @@ class Handler(SimpleHTTPRequestHandler):
             except ValueError:
                 sequence = 1
             frames, source = frames_for(user, sequence)
-            return self.respond({"user": user, "sequence": sequence, "source": source, "shape": [ROWS, COLS], "frames": frames, "metrics": [metrics(frame) for frame in frames]})
+            return self.respond({"user": user, "sequence": sequence, "source": source, "shape": [ROWS, COLS], "frames": frames, "metrics": [metrics(frame, user) for frame in frames]})
         return super().do_GET()
 
     def respond(self, data: dict):

@@ -1,0 +1,40 @@
+{
+  "seed": 42,
+  "train_users": [
+    "zmw",
+    "lxy1",
+    "whl",
+    "lzx1",
+    "hxr",
+    "hyh",
+    "sbr",
+    "syz",
+    "ljy",
+    "SAI",
+    "ghx",
+    "lyp",
+    "gjh",
+    "lrc",
+    "lcy",
+    "wcy",
+    "dgs",
+    "dwk1",
+    "yl",
+    "ghb",
+    "wjy",
+    "wc1",
+    "zhr"
+  ],
+  "test_users": [
+    "tjs",
+    "nys",
+    "whc",
+    "gzy",
+    "stanl",
+    "zxx",
+    "hpy",
+    "jhy",
+    "ltr",
+    "wzh"
+  ]
+}
