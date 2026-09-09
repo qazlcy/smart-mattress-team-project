@@ -1,4 +1,4 @@
-"""Smart mattress replay service (standard-library only).
+"""Smart mattress replay service.
 
 Set MATTRESS_DATA_DIR to the extracted `睡姿数据` directory.  Raw course data
 is deliberately kept out of this repository.
@@ -13,13 +13,14 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
-ROWS, COLS = 56, 24
+# Must match the 44 x 24 tensor expected by sleep_posture.CNN.
+ROWS, COLS = 44, 24
 ROOT = Path(__file__).parent
 DATA_DIR = Path(os.environ.get("MATTRESS_DATA_DIR", ROOT / "data"))
 
 
 def parse_frames(path: Path, limit: int = 180) -> list[list[list[int]]]:
-    """Read consecutive 24-value rows into 56x24 pressure frames."""
+    """Read consecutive 24-value rows into 44x24 pressure frames."""
     rows: list[list[int]] = []
     for line in path.read_text(encoding="utf-8-sig", errors="ignore").splitlines():
         values = [int(value) for value in re.findall(r"\d+", line)]
@@ -52,12 +53,48 @@ def users() -> list[str]:
 
 def frames_for(user: str, sequence: int) -> tuple[list[list[list[int]]], str]:
     folder = DATA_DIR / user
-    candidate = folder / f"{user}_{sequence}.txt"
-    if candidate.is_file():
-        frames = parse_frames(candidate)
-        if frames:
-            return frames, candidate.name
+    if folder.is_dir():
+        # A few user folders have a filename prefix different from the folder name.
+        candidates = sorted(path for path in folder.glob("*.txt") if path.stem.rsplit("_", 1)[-1] == str(sequence))
+        if candidates:
+            frames = parse_frames(candidates[0])
+            if frames:
+                return frames, candidates[0].name
     return demo_frames(), "内置演示数据（未找到本地采集文件）"
+
+
+_predictor = None
+
+
+def predict_posture(frame: list[list[int]]) -> tuple[str | None, str]:
+    """Predict a coarse posture when a locally trained CNN checkpoint is supplied.
+
+    Set MATTRESS_CNN_WEIGHTS to a checkpoint containing a CNN ``state_dict``.
+    No model artifact is committed with the course source, so the replay stays
+    usable with an explicit rule fallback until a checkpoint is provided.
+    """
+    global _predictor
+    weights = os.environ.get("MATTRESS_CNN_WEIGHTS")
+    if not weights:
+        return None, "规则回退（未配置 CNN 权重）"
+    try:
+        if _predictor is None:
+            import torch
+            from sleep_posture import config, labels
+            from sleep_posture.models import CNN
+            model = CNN()
+            state = torch.load(weights, map_location="cpu", weights_only=True)
+            model.load_state_dict(state["state_dict"] if isinstance(state, dict) and "state_dict" in state else state)
+            model.eval()
+            _predictor = (model, torch, config, labels)
+        model, torch, config, labels = _predictor
+        tensor = torch.tensor(frame, dtype=torch.float32).unsqueeze(0).unsqueeze(0)
+        tensor = torch.clamp(tensor / config.PRESSURE_FULL_SCALE, 0.0, 1.0)
+        with torch.no_grad():
+            predicted = int(model(tensor).argmax(dim=1).item())
+        return labels.CLASS_NAMES[predicted], "CNN 睡姿模型"
+    except Exception as error:  # Keep the live dashboard available if a local artifact is invalid.
+        return None, f"规则回退（CNN 不可用：{type(error).__name__}）"
 
 
 def metrics(frame: list[list[int]]) -> dict:
@@ -65,9 +102,10 @@ def metrics(frame: list[list[int]]) -> dict:
     active = [value for value in flat if value >= 15]
     total = sum(flat)
     weighted_col = sum(value * col for row in frame for col, value in enumerate(row)) / max(total, 1)
-    # This is a transparent rule-based integration fallback, not a trained model.
-    posture = "右侧卧" if weighted_col < 10.5 else "左侧卧" if weighted_col > 12.5 else "仰卧"
-    bands = [(0, 14), (14, 28), (28, 42), (42, 56)]
+    fallback = "右侧卧" if weighted_col < 10.5 else "左侧卧" if weighted_col > 12.5 else "仰卧"
+    posture, posture_source = predict_posture(frame)
+    posture = posture or fallback
+    bands = [(0, 11), (11, 22), (22, 33), (33, 44)]
     airbags = []
     for index, (start, end) in enumerate(bands, 1):
         mean = sum(sum(row) for row in frame[start:end]) / ((end - start) * COLS)
@@ -75,7 +113,7 @@ def metrics(frame: list[list[int]]) -> dict:
     return {
         "maxPressure": max(flat), "averagePressure": round(sum(active) / max(len(active), 1), 1),
         "contactAreaIndex": round(len(active) / len(flat) * 100, 1), "posture": posture,
-        "postureSource": "规则回退（等待睡姿模型接入）", "airbags": airbags,
+        "postureSource": posture_source, "airbags": airbags,
     }
 
 

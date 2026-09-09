@@ -86,7 +86,9 @@ def fit_evaluate_torch(model: nn.Module, X_train: np.ndarray, y_train: np.ndarra
         history.append(epoch_loss / n)
     model.eval()
     pred = _predict_torch(model, X_test, cnn)
-    return {"predictions": pred, "history": history}
+    # Keep a CPU copy so training can export a portable inference checkpoint.
+    state_dict = {name: value.detach().cpu() for name, value in model.state_dict().items()}
+    return {"predictions": pred, "history": history, "state_dict": state_dict}
 
 
 def _predict_torch(model: nn.Module, X: np.ndarray, cnn: bool, batch_size: int = 256) -> np.ndarray:

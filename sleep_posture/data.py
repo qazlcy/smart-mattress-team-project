@@ -15,8 +15,8 @@ import numpy as np
 
 from . import config, labels
 
-# 压力值归一化上限：传感器为 8-bit 量程，除以 255 映射到 [0,1]。
-NORMALIZE = 255.0
+# 课程采集值可达 841，按 10-bit 满量程归一化；裁剪保证接口承诺的 [0,1] 范围。
+NORMALIZE = config.PRESSURE_FULL_SCALE
 
 
 def list_users(data_dir: Path | None = None) -> list[str]:
@@ -44,7 +44,11 @@ def parse_frames(path: Path) -> list[np.ndarray]:
             continue
     frames: list[np.ndarray] = []
     for start in range(0, len(rows) - config.ROWS + 1, config.ROWS):
-        frame = np.asarray(rows[start:start + config.ROWS], dtype=np.float32) / NORMALIZE
+        frame = np.clip(
+            np.asarray(rows[start:start + config.ROWS], dtype=np.float32) / NORMALIZE,
+            0.0,
+            1.0,
+        )
         frames.append(frame)
     return frames
 

@@ -26,7 +26,8 @@ python -m sleep_posture.train --epochs 15
 ```
 
 结果写入 `results/`：`sleep_posture_results.json`（完整指标）、
-`confusion_matrix_*.png`（混淆矩阵图）。
+`confusion_matrix_*.png`（混淆矩阵图）和 `cnn_state_dict.pt`（供集成端通过
+`MATTRESS_CNN_WEIGHTS` 加载的模型权重；不提交到公开仓库）。
 
 快速验证（仅用前 6 个用户、2 个 epoch）：
 

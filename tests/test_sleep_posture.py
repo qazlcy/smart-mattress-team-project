@@ -36,7 +36,18 @@ class ParseTest(unittest.TestCase):
             path.unlink()
         self.assertEqual(len(frames), 1)
         self.assertEqual(frames[0].shape, (config.ROWS, config.COLS))
-        self.assertAlmostEqual(float(frames[0][0, 0]), 10 / 255.0, places=5)
+        self.assertAlmostEqual(float(frames[0][0, 0]), 10 / config.PRESSURE_FULL_SCALE, places=5)
+
+    def test_parse_frames_clips_values_to_unit_range(self):
+        lines = [",".join(["2000"] * config.COLS) for _ in range(config.ROWS)]
+        with tempfile.NamedTemporaryFile("w", suffix=".txt", delete=False) as f:
+            f.write("\n".join(lines))
+            path = Path(f.name)
+        try:
+            frames = data.parse_frames(path)
+        finally:
+            path.unlink()
+        self.assertEqual(float(frames[0].max()), 1.0)
 
     def test_parse_frames_skips_bad_rows(self):
         # 列数不等于 24 的行应被跳过。

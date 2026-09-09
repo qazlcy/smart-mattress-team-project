@@ -22,6 +22,9 @@ TRAIN_RATIO = 0.7
 # 睡姿粗分类类别数：仰卧 / 俯卧 / 左侧卧 / 右侧卧。
 N_CLASSES = 4
 
+# 原始压力值为 10-bit 量程；实测课程数据最大值可超过 255，不能按 8-bit 处理。
+PRESSURE_FULL_SCALE = 1023.0
+
 # 原始数据目录，通过环境变量 MATTRESS_DATA_DIR 指定（与 server.py 一致）。
 DATA_DIR = Path(os.environ.get("MATTRESS_DATA_DIR", Path(__file__).resolve().parents[1] / "data"))
 

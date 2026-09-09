@@ -4,4 +4,5 @@ tmp/
 data/
 *.rar
 *.jsonl
+*.pt
 .DS_Store

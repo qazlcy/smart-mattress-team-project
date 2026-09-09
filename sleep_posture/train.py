@@ -14,6 +14,7 @@ import json
 from pathlib import Path
 
 import numpy as np
+import torch
 
 from . import config, data, evaluate, labels, models
 
@@ -39,6 +40,7 @@ def _augment_train(train: dict, seed: int) -> tuple[np.ndarray, np.ndarray]:
 def run(max_users: int | None = None, epochs: int = 15, seed: int = config.SEED,
         output_dir: Path | None = None) -> dict:
     output_dir = output_dir or config.OUTPUT_DIR
+    output_dir.mkdir(parents=True, exist_ok=True)
     ds, train, test = _build_split(seed, max_users)
 
     stats = {
@@ -63,6 +65,7 @@ def run(max_users: int | None = None, epochs: int = 15, seed: int = config.SEED,
     print("[model] 训练 CNN ...")
     r = models.fit_evaluate_torch(models.CNN(), X_tr, y_tr, test["X"], test["y"], cnn=True, epochs=epochs, seed=seed)
     results["models"]["cnn"] = evaluate.classification_metrics(test["y"], r["predictions"])
+    torch.save(r["state_dict"], output_dir / "cnn_state_dict.pt")
 
     # 2) MLP
     print("[model] 训练 MLP ...")
@@ -77,7 +80,6 @@ def run(max_users: int | None = None, epochs: int = 15, seed: int = config.SEED,
     # 输出结果
     for name, m in results["models"].items():
         print(f"\n===== {name} 测试准确率 {m['accuracy'] * 100:.2f}% =====")
-    output_dir.mkdir(parents=True, exist_ok=True)
     evaluate.save_json(results, output_dir / "sleep_posture_results.json")
     for name, m in results["models"].items():
         evaluate.save_confusion_matrix_figure(m, output_dir / f"confusion_matrix_{name}.png")
