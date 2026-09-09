@@ -73,14 +73,15 @@ _predictor = None
 def predict_posture(frame: list[list[int]]) -> tuple[str | None, str]:
     """Predict a coarse posture when a locally trained CNN checkpoint is supplied.
 
-    Set MATTRESS_CNN_WEIGHTS to a checkpoint containing a CNN ``state_dict``.
-    No model artifact is committed with the course source, so the replay stays
-    usable with an explicit rule fallback until a checkpoint is provided.
+    By default this loads ``results/cnn_state_dict.pt``, the artifact produced
+    by ``python -m sleep_posture.train``. Set MATTRESS_CNN_WEIGHTS to override
+    that location. No model artifact is committed with the course source, so
+    the replay stays usable with an explicit rule fallback until trained.
     """
     global _predictor
-    weights = os.environ.get("MATTRESS_CNN_WEIGHTS")
-    if not weights:
-        return None, "规则回退（未配置 CNN 权重）"
+    weights = Path(os.environ.get("MATTRESS_CNN_WEIGHTS", ROOT / "results" / "cnn_state_dict.pt"))
+    if not weights.is_file():
+        return None, "规则回退（未找到 CNN 权重）"
     try:
         if _predictor is None:
             import torch

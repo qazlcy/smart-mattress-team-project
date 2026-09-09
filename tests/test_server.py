@@ -12,7 +12,7 @@ class ReplayContractTest(unittest.TestCase):
         result = metrics(frame)
         self.assertEqual(len(result["airbags"]), 4)
         self.assertIn(result["posture"], {"仰卧", "左侧卧", "右侧卧"})
-        self.assertIn("规则回退", result["postureSource"])
+        self.assertIn(result["postureSource"], {"CNN 睡姿模型", "规则回退（未找到 CNN 权重）"})
         self.assertEqual(len(result["bodyRegions"]), 6)
         self.assertIn("kg", result["weightPrediction"])
         self.assertIn("interval", result["weightPrediction"])
