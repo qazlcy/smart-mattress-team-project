@@ -15,6 +15,15 @@ import json
 from statistics import mean, median, pstdev
 
 ROWS, COLS = 44, 24
+REGION_AUGMENTATION = {
+    "seed": 42,
+    "variants": (
+        (0, 0, 1.00),   # original frame
+        (0, -1, 0.97),  # left translation and slight pressure variation
+        (0, 1, 1.03),   # right translation and slight pressure variation
+        (1, 0, 1.00),   # one-row lower translation
+    ),
+}
 BODY_PARTS = [
     ("shoulder", "肩部", 0.00, 0.13),
     ("back", "背部", 0.13, 0.27),
@@ -101,6 +110,38 @@ def feature_vector(frame: list[list[int]], empty_baseline: list[list[float]] | N
     ]
 
 
+def _translate_frame(frame: list[list[int]], row_shift: int, col_shift: int, gain: float) -> list[list[int]]:
+    """Apply deterministic, label-preserving pressure augmentation."""
+    output = [[0] * COLS for _ in range(ROWS)]
+    for row in range(ROWS):
+        for col in range(COLS):
+            target_row, target_col = row + row_shift, col + col_shift
+            if 0 <= target_row < ROWS and 0 <= target_col < COLS:
+                output[target_row][target_col] = max(0, round(frame[row][col] * gain))
+    return output
+
+
+def _translate_regions(regions: list[tuple[int, int, int, int]], row_shift: int, col_shift: int) -> list[tuple[int, int, int, int]] | None:
+    shifted = []
+    for start_row, end_row, start_col, end_col in regions:
+        start_row, end_row = start_row + row_shift, end_row + row_shift
+        start_col, end_col = start_col + col_shift, end_col + col_shift
+        if not (0 <= start_row < end_row <= ROWS and 0 <= start_col < end_col <= COLS):
+            return None
+        shifted.append((start_row, end_row, start_col, end_col))
+    return shifted
+
+
+def augment_region_sample(frame: list[list[int]], regions: list[tuple[int, int, int, int]]) -> list[tuple[list[list[int]], list[tuple[int, int, int, int]]]]:
+    """Create the fixed (therefore reproducible) augmentation set for training only."""
+    output = []
+    for row_shift, col_shift, gain in REGION_AUGMENTATION["variants"]:
+        translated_regions = _translate_regions(regions, row_shift, col_shift)
+        if translated_regions is not None:
+            output.append((_translate_frame(frame, row_shift, col_shift, gain), translated_regions))
+    return output
+
+
 def estimate_body_regions(frame: list[list[int]], empty_baseline: list[list[float]] | None = None) -> list[dict]:
     corrected = corrected_frame(frame, empty_baseline)
     features = pressure_features(frame, empty_baseline)
@@ -165,13 +206,17 @@ class BodyRegionCalibrator:
             if frame_hash in (excluded_frame_hashes or set()):
                 continue
             frame = parse_json_frame(record["data"])
-            parsed.append((record.get("people_name", ""), feature_vector(frame), regions, int(record["action"])))
+            parsed.append((record.get("people_name", ""), frame, regions, int(record["action"])))
         users = sorted({user for user, _, _, _ in parsed if user})
         if not parsed:
             return cls.fallback()
         train_users, test_users = split_user_names(users)
-        train = [(features, regions) for user, features, regions, action in parsed
-                 if user in train_users and action not in (excluded_actions or set())]
+        train = []
+        for user, frame, regions, action in parsed:
+            if user not in train_users or action in (excluded_actions or set()):
+                continue
+            for augmented_frame, augmented_regions in augment_region_sample(frame, regions):
+                train.append((feature_vector(augmented_frame), augmented_regions))
         if not train:
             return cls.fallback()
         means = [mean(features[i] for features, _ in train) for i in range(len(train[0][0]))]

@@ -217,6 +217,19 @@ small {
   margin-top: 12px;
 }
 
+.airbag b {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.airbag-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
 .bar {
   height: 9px;
   background: #173548;

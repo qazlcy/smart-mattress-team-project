@@ -10,30 +10,30 @@
       "gzy"
     ],
     "validation_strategy": "chronological 70/30 blocks per known user and action, with a one-frame guard gap",
-    "validation_samples": 432,
-    "train_samples": 966,
+    "validation_samples": 360,
+    "train_samples": 2397,
     "train_evaluation_duplicate_frames": 0,
     "labelled_users": 3,
     "criterion": "primary: boundary tolerance row start/end 3/4, col start/end 4/4 cells; IoU >= 0.5 also reported",
     "known_validation": {
-      "parts": 2592,
-      "tolerance_hits": 2592,
-      "exact_hits": 2554,
-      "iou_hits": 2592,
+      "parts": 2160,
+      "tolerance_hits": 2160,
+      "exact_hits": 2122,
+      "iou_hits": 2160,
       "boundary_tolerance_accuracy_pct": 100.0,
-      "exact_box_accuracy_pct": 98.53,
+      "exact_box_accuracy_pct": 98.24,
       "iou_0_5_accuracy_pct": 100.0,
-      "mean_iou": 0.9985
+      "mean_iou": 0.9982
     },
     "new_users": {
-      "parts": 4320,
-      "tolerance_hits": 3284,
-      "exact_hits": 74,
-      "iou_hits": 2428,
-      "boundary_tolerance_accuracy_pct": 76.02,
-      "exact_box_accuracy_pct": 1.71,
-      "iou_0_5_accuracy_pct": 56.2,
-      "mean_iou": 0.5247
+      "parts": 3600,
+      "tolerance_hits": 3256,
+      "exact_hits": 117,
+      "iou_hits": 2589,
+      "boundary_tolerance_accuracy_pct": 90.44,
+      "exact_box_accuracy_pct": 3.25,
+      "iou_0_5_accuracy_pct": 71.92,
+      "mean_iou": 0.62
     }
   },
   "weight": {

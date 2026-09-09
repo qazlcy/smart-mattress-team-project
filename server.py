@@ -21,6 +21,8 @@ DATA_DIR = Path(os.environ.get("MATTRESS_DATA_DIR", ROOT / "data"))
 CALIBRATOR: WeightCalibrator | None = None
 REGION_CALIBRATOR: BodyRegionCalibrator | None = None
 BASELINE_CACHE: dict[str, list[list[float]] | None] = {}
+AIRBAG_MAPPING_PATH = ROOT / "docs" / "airbag_sensor_mapping.json"
+AIRBAG_MAPPING = json.loads(AIRBAG_MAPPING_PATH.read_text(encoding="utf-8"))
 
 
 def parse_frames(path: Path, limit: int = 180) -> list[list[list[int]]]:
@@ -122,6 +124,24 @@ def empty_baseline_for(user: str) -> list[list[float]] | None:
     return BASELINE_CACHE[user]
 
 
+def airbag_states(frame: list[list[int]]) -> list[dict]:
+    """Project the colour-coded course airbag layout onto the 44 x 24 frame."""
+    states = []
+    for zone in AIRBAG_MAPPING["zones"]:
+        values = []
+        for rectangle in zone["rectangles"]:
+            for row in range(rectangle["startRow"], rectangle["endRow"]):
+                for col in range(rectangle["startCol"], rectangle["endCol"]):
+                    values.append(frame[row][col])
+        mean_pressure = sum(values) / max(len(values), 1)
+        states.append({
+            "id": zone["id"], "name": zone["name"], "color": zone["color"],
+            "pressure": round(mean_pressure, 1), "sensorChannels": AIRBAG_MAPPING["sourceChannelGroups"][zone["sensorChannels"]],
+            "state": "充气" if mean_pressure > 45 else "保持",
+        })
+    return states
+
+
 def metrics(frame: list[list[int]], user: str = "demo") -> dict:
     flat = [value for row in frame for value in row]
     active = [value for value in flat if value >= 15]
@@ -130,11 +150,7 @@ def metrics(frame: list[list[int]], user: str = "demo") -> dict:
     fallback = "右侧卧" if weighted_col < 10.5 else "左侧卧" if weighted_col > 12.5 else "仰卧"
     posture, posture_source = predict_posture(frame)
     posture = posture or fallback
-    bands = [(0, 11), (11, 22), (22, 33), (33, 44)]
-    airbags = []
-    for index, (start, end) in enumerate(bands, 1):
-        mean = sum(sum(row) for row in frame[start:end]) / ((end - start) * COLS)
-        airbags.append({"id": f"A{index}", "pressure": round(mean, 1), "state": "充气" if mean > 45 else "保持"})
+    airbags = airbag_states(frame)
     baseline = empty_baseline_for(user)
     region_model = region_calibrator()
     regions = region_model.predict(frame, baseline)
@@ -143,6 +159,7 @@ def metrics(frame: list[list[int]], user: str = "demo") -> dict:
         "maxPressure": max(flat), "averagePressure": round(sum(active) / max(len(active), 1), 1),
         "contactAreaIndex": round(len(active) / len(flat) * 100, 1), "posture": posture,
         "postureSource": posture_source, "airbags": airbags,
+        "airbagMappingSource": AIRBAG_MAPPING["source"],
         "bodyRegions": regions,
         "bodyRegionSource": "区域标注近邻模型+空载校正" if region_model.samples and baseline else "区域标注近邻模型" if region_model.samples else "压力轮廓区域划分",
         "weightPrediction": weight,
