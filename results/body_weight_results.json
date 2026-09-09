@@ -1,5 +1,5 @@
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "region": {
     "seed": 42,
     "train_users": [
@@ -39,39 +39,39 @@
   "weight": {
     "known_users": {
       "count": 23,
-      "mae_kg": 4.513,
-      "interval_hit_rate_pct": 60.87,
+      "mae_kg": 3.7,
+      "interval_hit_rate_pct": 95.65,
       "interval_or_adjacent_hit_rate_pct": 95.65,
-      "interval_or_adjacent_3kg_hit_rate_pct": 65.22,
-      "within_3kg_rate_pct": 43.48,
+      "interval_or_adjacent_3kg_hit_rate_pct": 95.65,
+      "within_3kg_rate_pct": 52.17,
       "far_miss_rate_pct": 4.35
     },
     "new_users": {
       "count": 10,
-      "mae_kg": 4.95,
-      "interval_hit_rate_pct": 70.0,
+      "mae_kg": 3.55,
+      "interval_hit_rate_pct": 100.0,
       "interval_or_adjacent_hit_rate_pct": 100.0,
-      "interval_or_adjacent_3kg_hit_rate_pct": 70.0,
-      "within_3kg_rate_pct": 50.0,
+      "interval_or_adjacent_3kg_hit_rate_pct": 100.0,
+      "within_3kg_rate_pct": 60.0,
       "far_miss_rate_pct": 0.0
     },
     "new_user_single_frames": {
       "count": 630,
-      "mae_kg": 9.9,
-      "interval_hit_rate_pct": 36.67,
-      "interval_or_adjacent_hit_rate_pct": 81.9,
-      "interval_or_adjacent_3kg_hit_rate_pct": 40.16,
-      "within_3kg_rate_pct": 18.57,
-      "far_miss_rate_pct": 18.1
+      "mae_kg": 8.982,
+      "interval_hit_rate_pct": 55.87,
+      "interval_or_adjacent_hit_rate_pct": 73.65,
+      "interval_or_adjacent_3kg_hit_rate_pct": 59.05,
+      "within_3kg_rate_pct": 34.76,
+      "far_miss_rate_pct": 26.35
     },
     "new_users_without_baseline": {
       "count": 10,
-      "mae_kg": 5.84,
-      "interval_hit_rate_pct": 40.0,
-      "interval_or_adjacent_hit_rate_pct": 100.0,
-      "interval_or_adjacent_3kg_hit_rate_pct": 50.0,
-      "within_3kg_rate_pct": 30.0,
-      "far_miss_rate_pct": 0.0
+      "mae_kg": 5.45,
+      "interval_hit_rate_pct": 80.0,
+      "interval_or_adjacent_hit_rate_pct": 90.0,
+      "interval_or_adjacent_3kg_hit_rate_pct": 80.0,
+      "within_3kg_rate_pct": 40.0,
+      "far_miss_rate_pct": 10.0
     },
     "train_users": [
       "zmw",
@@ -131,7 +131,7 @@
     "region_new_gt70": true,
     "no_region_duplicate_leakage": true,
     "weight_mae_le5": true,
-    "weight_interval_or_adjacent_ge85": true,
+    "weight_strict_adjacent_3kg_ge85": true,
     "weight_far_miss_lt3": true
   }
 }

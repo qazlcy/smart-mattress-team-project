@@ -160,12 +160,12 @@ def main():
         parser.error('请指定包含 readme、睡姿数据、区域划分的 --data-root')
     weight,private = evaluate_weight(root)
     region = evaluate_regions(root)
-    result = dict(schema_version=2,region=region,weight=weight,acceptance=dict(
+    result = dict(schema_version=3,region=region,weight=weight,acceptance=dict(
         region_known_gt95=region['known_validation']['boundary_tolerance_accuracy_pct']>95,
         region_new_gt70=region['new_users']['boundary_tolerance_accuracy_pct']>70,
         no_region_duplicate_leakage=region['train_evaluation_duplicate_frames']==0,
         weight_mae_le5=weight['new_users']['mae_kg']<=5,
-        weight_interval_or_adjacent_ge85=weight['new_users']['interval_or_adjacent_hit_rate_pct']>=85,
+        weight_strict_adjacent_3kg_ge85=weight['new_users']['interval_or_adjacent_3kg_hit_rate_pct']>=85,
         weight_far_miss_lt3=weight['new_users']['far_miss_rate_pct']<3))
     for path,content in ((args.output,result),(args.private_output,private)):
         path.parent.mkdir(parents=True,exist_ok=True)

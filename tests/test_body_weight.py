@@ -20,6 +20,8 @@ class BodyWeightContractTest(unittest.TestCase):
         model = WeightCalibrator(
             coefficients=[100.0, 0.0, 0.0, 0.0, 0.0, 0.0],
             load_only_coefficients=[50.0, 0.001],
+            interval_samples=[],
+            interval_scales=[],
             heights={"new": 195.0},
             train_users=["known"],
             test_users=["new"],
@@ -37,6 +39,52 @@ class BodyWeightContractTest(unittest.TestCase):
         result = model.predict_features(features, "new")
         self.assertEqual(result["kg"], 70.0)
         self.assertEqual(result["confidence"], "calibrated_extrapolation_guard")
+
+    def test_height_below_training_range_does_not_use_load_guard(self):
+        model = WeightCalibrator(
+            coefficients=[68.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            load_only_coefficients=[100.0, 0.0],
+            interval_samples=[],
+            interval_scales=[],
+            heights={"new": 160.0},
+            train_users=["known"],
+            test_users=["new"],
+            metadata_count=2,
+            training_height_range=(165.0, 190.0),
+        )
+        features = {
+            "active_area": 10.0, "total_load": 20_000.0, "sqrt_load": 141.4,
+            "max_pressure": 100.0, "center_row": 20.0, "center_col": 12.0,
+        }
+        self.assertEqual(model.predict_features(features, "new")["kg"], 68.0)
+
+    def test_ordinal_calibration_only_moves_to_one_adjacent_interval(self):
+        features = {
+            "active_area": 200.0, "total_load": 40_000.0, "sqrt_load": 200.0,
+            "mean_pressure": 200.0, "max_pressure": 800.0,
+            "center_row": 20.0, "center_col": 12.0,
+            "row_min": 5.0, "row_max": 35.0, "col_min": 3.0, "col_max": 21.0,
+        }
+        interval_sample = [
+            200.0, 200.0, 200.0, 800.0, 20.0, 12.0,
+            5.0, 35.0, 3.0, 21.0, 175.0, 200.0 / 175.0, 200.0 / 175.0,
+        ]
+        model = WeightCalibrator(
+            coefficients=[78.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            load_only_coefficients=[78.0, 0.0],
+            interval_samples=[(interval_sample, 4)],
+            interval_scales=[1.0] * len(interval_sample),
+            heights={"new": 175.0},
+            train_users=["known"],
+            test_users=["new"],
+            metadata_count=2,
+            training_height_range=(165.0, 190.0),
+        )
+        result = model.predict_features(features, "new")
+        self.assertEqual(result["kg"], 85.0)
+        self.assertEqual(result["interval"]["index"], 4)
+        self.assertTrue(result["intervalCalibrationApplied"])
+        self.assertEqual(result["confidence"], "calibrated_ordinal")
 
     def test_find_region_json_accepts_course_versioned_filename(self):
         with tempfile.TemporaryDirectory() as directory:

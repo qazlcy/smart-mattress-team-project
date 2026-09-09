@@ -47,10 +47,22 @@ function renderRegions(regions) {
   `).join("");
 }
 
-function renderWeight(weight) {
-  $("#weight").textContent = `${weight.kg} kg`;
-  $("#weightRange").textContent = weight.interval.label;
-  $("#weightSource").textContent = weight.source;
+function renderWeight(stable, instant) {
+  $("#userType").textContent = stable.userType.label;
+  $("#userType").dataset.kind = stable.userType.key;
+  if (stable.available) {
+    $("#stableWeight").textContent = `${stable.prediction.kg} kg`;
+    $("#stableWeightRange").textContent = stable.prediction.interval.label;
+    $("#stableWeightSource").textContent = stable.prediction.source;
+    $("#stableWeightEvidence").textContent = `${stable.frameCount} 帧多序列特征中位数 · 正式评价口径`;
+  } else {
+    $("#stableWeight").textContent = "暂无聚合结果";
+    $("#stableWeightRange").textContent = "--";
+    $("#stableWeightSource").textContent = "需要本地静态采集数据";
+    $("#stableWeightEvidence").textContent = "当前仅可展示即时估计";
+  }
+  $("#weight").textContent = instant.kg == null ? "未检测到载荷" : `${instant.kg} kg`;
+  $("#weightRange").textContent = instant.interval ? instant.interval.label : "--";
 }
 
 function draw() {
@@ -74,7 +86,7 @@ function draw() {
     </div>
   `).join("");
   renderRegions(metrics.bodyRegions);
-  renderWeight(metrics.weightPrediction);
+  renderWeight(replay.stableWeightPrediction, metrics.weightPrediction);
 }
 
 async function load() {
