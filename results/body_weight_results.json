@@ -11,7 +11,7 @@
     ],
     "validation_strategy": "chronological 70/30 blocks per known user and action, with a one-frame guard gap",
     "validation_samples": 432,
-    "train_samples": 966,
+    "train_samples": 2797,
     "train_evaluation_duplicate_frames": 0,
     "labelled_users": 3,
     "criterion": "primary: boundary tolerance row start/end 3/4, col start/end 4/4 cells; IoU >= 0.5 also reported",
@@ -27,13 +27,13 @@
     },
     "new_users": {
       "parts": 4320,
-      "tolerance_hits": 3284,
-      "exact_hits": 74,
-      "iou_hits": 2428,
-      "boundary_tolerance_accuracy_pct": 76.02,
-      "exact_box_accuracy_pct": 1.71,
-      "iou_0_5_accuracy_pct": 56.2,
-      "mean_iou": 0.5247
+      "tolerance_hits": 3666,
+      "exact_hits": 117,
+      "iou_hits": 2763,
+      "boundary_tolerance_accuracy_pct": 84.86,
+      "exact_box_accuracy_pct": 2.71,
+      "iou_0_5_accuracy_pct": 63.96,
+      "mean_iou": 0.5762
     }
   },
   "weight": {

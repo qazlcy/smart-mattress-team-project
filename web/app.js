@@ -80,8 +80,8 @@ function draw() {
   $("#baseline").textContent = metrics.emptyBaselineApplied ? "已应用空载校正" : "未检测到空载基线";
   $("#airbags").innerHTML = metrics.airbags.map((airbag) => `
     <div class="airbag">
-      <b>${airbag.id}</b>
-      <div class="bar"><i style="width:${Math.min(100, airbag.pressure)}%"></i></div>
+      <b><i class="airbag-dot" style="background:${airbag.color}"></i>${airbag.name}</b>
+      <div class="bar"><i style="width:${Math.min(100, airbag.pressure)}%; background:${airbag.color}"></i></div>
       <span>${airbag.state}</span>
     </div>
   `).join("");
