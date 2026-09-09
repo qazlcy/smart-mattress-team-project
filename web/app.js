@@ -1,5 +1,112 @@
-const $=s=>document.querySelector(s);let replay,frame=0,timer;
-const color=v=>{const n=Math.min(1,v/300),r=Math.round(255*Math.min(1,n*2)),g=Math.round(210*Math.sin(n*Math.PI)),b=Math.round(110+145*(1-n));return `rgb(${r},${g},${b})`};
-function draw(){if(!replay)return;const data=replay.frames[frame],c=$("#heatmap"),x=c.getContext("2d"),w=c.width/24,h=c.height/56;x.clearRect(0,0,c.width,c.height);data.forEach((row,r)=>row.forEach((v,col)=>{x.fillStyle=color(v);x.fillRect(col*w,r*h,Math.ceil(w),Math.ceil(h))}));const m=replay.metrics[frame];$("#frame").textContent=`第 ${frame+1} / ${replay.frames.length} 帧`;$("#posture").textContent=m.posture;$("#postureSource").textContent=m.postureSource;$("#max").textContent=m.maxPressure;$("#avg").textContent=m.averagePressure;$("#area").textContent=m.contactAreaIndex+"%";$("#airbags").innerHTML=m.airbags.map(a=>`<div class="airbag"><b>${a.id}</b><div class="bar"><i style="width:${Math.min(100,a.pressure)}%"></i></div><span>${a.state}</span></div>`).join("")}
-async function load(){clearInterval(timer);$("#play").textContent="▶ 播放";frame=0;const u=$("#user").value,s=$("#sequence").value;replay=await fetch(`/api/replay?user=${encodeURIComponent(u)}&sequence=${s}`).then(r=>r.json());$("#source").textContent=replay.source;draw()}
-async function init(){const d=await fetch("/api/users").then(r=>r.json());$("#user").innerHTML=d.users.map(u=>`<option>${u}</option>`).join("");await load()}$("#load").onclick=load;$("#play").onclick=()=>{if(timer){clearInterval(timer);timer=null;$("#play").textContent="▶ 播放"}else{timer=setInterval(()=>{frame=(frame+1)%replay.frames.length;draw()},160);$("#play").textContent="❚❚ 暂停"}};init();
+const $ = (selector) => document.querySelector(selector);
+let replay;
+let frame = 0;
+let timer;
+
+const regionColors = ["#44dbc8", "#f7d85a", "#ff8b4a", "#ee5a75", "#9ad66b", "#8fb8ff"];
+
+function color(value) {
+  const n = Math.min(1, value / 300);
+  const r = Math.round(255 * Math.min(1, n * 2));
+  const g = Math.round(210 * Math.sin(n * Math.PI));
+  const b = Math.round(110 + 145 * (1 - n));
+  return `rgb(${r},${g},${b})`;
+}
+
+function drawHeatmap(data, metrics) {
+  const canvas = $("#heatmap");
+  const context = canvas.getContext("2d");
+  const cellWidth = canvas.width / 24;
+  const cellHeight = canvas.height / 56;
+  context.clearRect(0, 0, canvas.width, canvas.height);
+  data.forEach((row, rowIndex) => {
+    row.forEach((value, colIndex) => {
+      context.fillStyle = color(value);
+      context.fillRect(colIndex * cellWidth, rowIndex * cellHeight, Math.ceil(cellWidth), Math.ceil(cellHeight));
+    });
+  });
+  metrics.bodyRegions.forEach((region, index) => {
+    context.strokeStyle = regionColors[index % regionColors.length];
+    context.lineWidth = 3;
+    context.strokeRect(
+      region.startCol * cellWidth,
+      region.startRow * cellHeight,
+      (region.endCol - region.startCol) * cellWidth,
+      (region.endRow - region.startRow) * cellHeight
+    );
+  });
+}
+
+function renderRegions(regions) {
+  $("#regions").innerHTML = regions.map((region, index) => `
+    <div class="region-row">
+      <i style="background:${regionColors[index % regionColors.length]}"></i>
+      <span>${region.label}</span>
+      <b>${region.loadShare}%</b>
+    </div>
+  `).join("");
+}
+
+function renderWeight(weight) {
+  $("#weight").textContent = `${weight.kg} kg`;
+  $("#weightRange").textContent = weight.interval.label;
+  $("#weightSource").textContent = weight.source;
+}
+
+function draw() {
+  if (!replay) return;
+  const data = replay.frames[frame];
+  const metrics = replay.metrics[frame];
+  drawHeatmap(data, metrics);
+  $("#frame").textContent = `第 ${frame + 1} / ${replay.frames.length} 帧`;
+  $("#posture").textContent = metrics.posture;
+  $("#postureSource").textContent = metrics.postureSource;
+  $("#max").textContent = metrics.maxPressure;
+  $("#avg").textContent = metrics.averagePressure;
+  $("#area").textContent = `${metrics.contactAreaIndex}%`;
+  $("#regionSource").textContent = metrics.bodyRegionSource;
+  $("#baseline").textContent = metrics.emptyBaselineApplied ? "已应用空载校正" : "未检测到空载基线";
+  $("#airbags").innerHTML = metrics.airbags.map((airbag) => `
+    <div class="airbag">
+      <b>${airbag.id}</b>
+      <div class="bar"><i style="width:${Math.min(100, airbag.pressure)}%"></i></div>
+      <span>${airbag.state}</span>
+    </div>
+  `).join("");
+  renderRegions(metrics.bodyRegions);
+  renderWeight(metrics.weightPrediction);
+}
+
+async function load() {
+  clearInterval(timer);
+  timer = null;
+  $("#play").textContent = "播放";
+  frame = 0;
+  const user = $("#user").value;
+  const sequence = $("#sequence").value;
+  replay = await fetch(`/api/replay?user=${encodeURIComponent(user)}&sequence=${sequence}`).then((response) => response.json());
+  $("#source").textContent = replay.source;
+  draw();
+}
+
+async function init() {
+  const data = await fetch("/api/users").then((response) => response.json());
+  $("#user").innerHTML = data.users.map((user) => `<option>${user}</option>`).join("");
+  await load();
+}
+
+$("#load").onclick = load;
+$("#play").onclick = () => {
+  if (timer) {
+    clearInterval(timer);
+    timer = null;
+    $("#play").textContent = "播放";
+  } else {
+    timer = setInterval(() => {
+      frame = (frame + 1) % replay.frames.length;
+      draw();
+    }, 160);
+    $("#play").textContent = "暂停";
+  }
+};
+init();

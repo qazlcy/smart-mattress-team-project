@@ -1,3 +1,56 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>智能床垫实时回放</title><link rel="stylesheet" href="style.css"></head><body>
-<header><div><p class="eyebrow">SMART MATTRESS / INTEGRATION DEMO</p><h1>实时压力回放中心</h1></div><div class="controls"><label>用户 <select id="user"></select></label><label>采集序列 <input id="sequence" type="number" min="1" max="21" value="1"></label><button id="load">载入回放</button><button id="play">▶ 播放</button></div></header>
-<main><section class="panel heat"><div class="panel-title"><h2>压力热力图</h2><span id="source">正在载入</span></div><canvas id="heatmap" width="720" height="510"></canvas><div class="legend"><span>低压</span><i></i><span>高压</span></div></section><section class="side"><section class="panel"><div class="panel-title"><h2>睡眠状态</h2><span id="frame">第 0 帧</span></div><strong id="posture">--</strong><p id="postureSource">--</p></section><section class="stat-grid"><article><span>最大压力</span><b id="max">--</b><small>原始单位</small></article><article><span>平均压力</span><b id="avg">--</b><small>接触点均值</small></article><article><span>接触面积指数</span><b id="area">--</b><small>阈值 ≥ 15</small></article></section><section class="panel"><div class="panel-title"><h2>气囊状态</h2><span>按压力分区联动</span></div><div id="airbags"></div></section><section class="panel note"><b>集成说明</b><p>页面可直接回放课程文本帧。睡姿与气囊目前使用可解释的规则回退；接入队友模型后只需替换后端同名字段。</p></section></section></main><script src="app.js"></script></body></html>
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>智能床垫实时回放</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <div>
+      <p class="eyebrow">SMART MATTRESS / INTEGRATION DEMO</p>
+      <h1>实时压力回放中心</h1>
+    </div>
+    <div class="controls">
+      <label>用户 <select id="user"></select></label>
+      <label>采集序列 <input id="sequence" type="number" min="1" max="21" value="1"></label>
+      <button id="load">载入回放</button>
+      <button id="play">播放</button>
+    </div>
+  </header>
+  <main>
+    <section class="panel heat">
+      <div class="panel-title"><h2>压力热力图与身体区域</h2><span id="source">正在载入</span></div>
+      <canvas id="heatmap" width="720" height="510"></canvas>
+      <div class="legend"><span>低压</span><i></i><span>高压</span></div>
+    </section>
+    <section class="side">
+      <section class="panel">
+        <div class="panel-title"><h2>睡眠状态</h2><span id="frame">第 0 帧</span></div>
+        <strong id="posture">--</strong>
+        <p id="postureSource">--</p>
+      </section>
+      <section class="stat-grid">
+        <article><span>最大压力</span><b id="max">--</b><small>原始单位</small></article>
+        <article><span>平均压力</span><b id="avg">--</b><small>接触点均值</small></article>
+        <article><span>接触面积指数</span><b id="area">--</b><small>阈值 >= 15</small></article>
+      </section>
+      <section class="panel weight-panel">
+        <div class="panel-title"><h2>体重预测</h2><span id="baseline">--</span></div>
+        <strong id="weight">--</strong>
+        <p><b id="weightRange">--</b><span id="weightSource">--</span></p>
+      </section>
+      <section class="panel">
+        <div class="panel-title"><h2>身体部位负载</h2><span id="regionSource">--</span></div>
+        <div id="regions" class="regions"></div>
+      </section>
+      <section class="panel">
+        <div class="panel-title"><h2>气囊状态</h2><span>按压力分区联动</span></div>
+        <div id="airbags"></div>
+      </section>
+    </section>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>
