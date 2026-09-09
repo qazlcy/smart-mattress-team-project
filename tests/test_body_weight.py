@@ -1,6 +1,9 @@
+import tempfile
 import unittest
+from pathlib import Path
 
-from body_weight import COLS, ROWS, WeightCalibrator, corrected_frame, weight_interval
+from body_weight import (COLS, ROWS, WeightCalibrator, corrected_frame,
+                         find_region_json, weight_interval)
 
 
 class BodyWeightContractTest(unittest.TestCase):
@@ -34,6 +37,15 @@ class BodyWeightContractTest(unittest.TestCase):
         result = model.predict_features(features, "new")
         self.assertEqual(result["kg"], 70.0)
         self.assertEqual(result["confidence"], "calibrated_extrapolation_guard")
+
+    def test_find_region_json_accepts_course_versioned_filename(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            folder = root / "区域划分"
+            folder.mkdir()
+            expected = folder / "区域划分2026（30人）.json"
+            expected.write_text("[]", encoding="utf-8")
+            self.assertEqual(find_region_json(root), expected)
 
 
 if __name__ == "__main__":

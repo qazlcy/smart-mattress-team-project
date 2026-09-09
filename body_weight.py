@@ -371,6 +371,15 @@ def find_region_json(data_root: Path) -> Path | None:
     for path in (data_root / "区域划分/data.json", data_root.parent / "区域划分/data.json", data_root / "data.json"):
         if path.is_file():
             return path
+    # The course package currently names this file ``区域划分2026（30人）.json``.
+    # Keep the conventional data.json lookup above, then accept any JSON file
+    # inside the region-label folder so a date/version suffix does not break
+    # reproducible evaluation.
+    for folder in (data_root / "区域划分", data_root.parent / "区域划分"):
+        if folder.is_dir():
+            candidates = sorted(path for path in folder.glob("*.json") if path.is_file())
+            if candidates:
+                return candidates[0]
     return None
 
 
