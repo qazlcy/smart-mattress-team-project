@@ -39,4 +39,10 @@ class ReplayContractTest(unittest.TestCase):
         self.assertEqual([state["id"] for state in states], ["A_RED", "A_GREEN", "A_YELLOW"])
         self.assertEqual(states[0]["sensorChannels"], list(range(20)))
 
+    def test_heatmap_grid_uses_actual_frame_shape(self):
+        script = (Path(__file__).parents[1] / "web" / "app.js").read_text(encoding="utf-8")
+        self.assertIn("canvas.width / columnCount", script)
+        self.assertIn("canvas.height / rowCount", script)
+        self.assertNotIn("canvas.height / 56", script)
+
 if __name__ == "__main__": unittest.main()

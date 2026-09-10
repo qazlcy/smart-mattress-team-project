@@ -16,8 +16,10 @@ function color(value) {
 function drawHeatmap(data, metrics) {
   const canvas = $("#heatmap");
   const context = canvas.getContext("2d");
-  const cellWidth = canvas.width / 24;
-  const cellHeight = canvas.height / 56;
+  const rowCount = Math.max(data.length, 1);
+  const columnCount = Math.max(data[0]?.length || 0, 1);
+  const cellWidth = canvas.width / columnCount;
+  const cellHeight = canvas.height / rowCount;
   context.clearRect(0, 0, canvas.width, canvas.height);
   data.forEach((row, rowIndex) => {
     row.forEach((value, colIndex) => {
