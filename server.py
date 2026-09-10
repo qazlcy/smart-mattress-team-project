@@ -12,7 +12,9 @@ from http import HTTPStatus
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
-from body_weight import BodyRegionCalibrator, WeightCalibrator, average_empty_baseline
+from body_weight import (BodyRegionCalibrator, WeightCalibrator,
+                         average_empty_baseline, median_feature_row,
+                         sample_user_features)
 
 # Must match the 44 x 24 tensor expected by sleep_posture.CNN.
 ROWS, COLS = 44, 24
@@ -21,6 +23,7 @@ DATA_DIR = Path(os.environ.get("MATTRESS_DATA_DIR", ROOT / "data"))
 CALIBRATOR: WeightCalibrator | None = None
 REGION_CALIBRATOR: BodyRegionCalibrator | None = None
 BASELINE_CACHE: dict[str, list[list[float]] | None] = {}
+STABLE_WEIGHT_CACHE: dict[str, dict] = {}
 AIRBAG_MAPPING_PATH = ROOT / "docs" / "airbag_sensor_mapping.json"
 AIRBAG_MAPPING = json.loads(AIRBAG_MAPPING_PATH.read_text(encoding="utf-8"))
 
@@ -124,6 +127,39 @@ def empty_baseline_for(user: str) -> list[list[float]] | None:
     return BASELINE_CACHE[user]
 
 
+def user_kind(user: str, model: WeightCalibrator | None = None) -> dict[str, str]:
+    model = model or calibrator()
+    if user in model.train_users:
+        return {"key": "known", "label": "训练库已有用户"}
+    if user in model.test_users:
+        return {"key": "new", "label": "30% 隔离新用户"}
+    return {"key": "demo", "label": "演示/未分组用户"}
+
+
+def stable_weight_for(user: str) -> dict:
+    """Return the formal multi-sequence estimate used by the weight evaluation."""
+    if user in STABLE_WEIGHT_CACHE:
+        return STABLE_WEIGHT_CACHE[user]
+    model = calibrator()
+    kind = user_kind(user, model)
+    user_dir = DATA_DIR / user
+    feature_rows = sample_user_features(user_dir) if user_dir.is_dir() else []
+    if feature_rows:
+        prediction = model.predict_features(
+            median_feature_row(feature_rows),
+            user,
+            empty_baseline_for(user) is not None,
+            "user_median_21_sequences",
+        )
+        result = {"available": True, "userType": kind, "frameCount": len(feature_rows),
+                  "prediction": prediction, "formalResult": True}
+    else:
+        result = {"available": False, "userType": kind, "frameCount": 0,
+                  "prediction": None, "formalResult": False}
+    STABLE_WEIGHT_CACHE[user] = result
+    return result
+
+
 def airbag_states(frame: list[list[int]]) -> list[dict]:
     """Project the colour-coded course airbag layout onto the 44 x 24 frame."""
     states = []
@@ -180,7 +216,10 @@ class Handler(SimpleHTTPRequestHandler):
             except ValueError:
                 sequence = 1
             frames, source = frames_for(user, sequence)
-            return self.respond({"user": user, "sequence": sequence, "source": source, "shape": [ROWS, COLS], "frames": frames, "metrics": [metrics(frame, user) for frame in frames]})
+            return self.respond({"user": user, "sequence": sequence, "source": source,
+                                 "shape": [ROWS, COLS], "frames": frames,
+                                 "stableWeightPrediction": stable_weight_for(user),
+                                 "metrics": [metrics(frame, user) for frame in frames]})
         return super().do_GET()
 
     def respond(self, data: dict):

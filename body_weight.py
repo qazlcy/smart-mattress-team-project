@@ -286,6 +286,8 @@ def solve_linear_system(matrix: list[list[float]], vector: list[float]) -> list[
 class WeightCalibrator:
     coefficients: list[float]
     load_only_coefficients: list[float]
+    interval_samples: list[tuple[list[float], int]]
+    interval_scales: list[float]
     heights: dict[str, float]
     train_users: list[str]
     test_users: list[str]
@@ -294,7 +296,17 @@ class WeightCalibrator:
 
     @classmethod
     def fallback(cls) -> "WeightCalibrator":
-        return cls([47.0, 0.28, 0.0, 0.0, 0.0, 0.0], [47.0, 0.0], {}, [], [], 0, (0.0, float("inf")))
+        return cls(
+            [47.0, 0.28, 0.0, 0.0, 0.0, 0.0],
+            [47.0, 0.0],
+            [],
+            [],
+            {},
+            [],
+            [],
+            0,
+            (0.0, float("inf")),
+        )
 
     @classmethod
     def from_dataset(cls, data_dir: Path, metadata_path: Path | None = None, correct_baseline: bool = True) -> "WeightCalibrator":
@@ -307,6 +319,7 @@ class WeightCalibrator:
         train_users, test_users = split_user_names(users)
         samples = []
         load_only_samples = []
+        interval_samples = []
         for user in train_users:
             feature_rows = sample_user_features(data_dir / user, correct_baseline=correct_baseline)
             if not feature_rows:
@@ -315,6 +328,7 @@ class WeightCalibrator:
             height = heights.get(user, 175.0)
             samples.append((weight_feature_row(med, height), weights[user]))
             load_only_samples.append(([1.0, med["total_load"]], weights[user]))
+            interval_samples.append((interval_feature_row(med, height), weight_interval(weights[user])["index"]))
         if len(samples) < 4:
             return cls.fallback()
         width = len(samples[0][0])
@@ -335,9 +349,15 @@ class WeightCalibrator:
                 for c in range(2):
                     load_xtx[r][c] += feature_row[r] * feature_row[c]
         train_heights = [heights[user] for user in train_users]
+        interval_scales = [
+            pstdev(row[index] for row, _ in interval_samples) or 1.0
+            for index in range(len(interval_samples[0][0]))
+        ]
         return cls(
             solve_linear_system(xtx, xty),
             solve_linear_system(load_xtx, load_xty),
+            interval_samples,
+            interval_scales,
             heights,
             train_users,
             test_users,
@@ -357,22 +377,40 @@ class WeightCalibrator:
         row = weight_feature_row(features, self.heights.get(user, 175.0))
         weight = sum(coef * value for coef, value in zip(self.coefficients, row))
         height = self.heights.get(user)
-        outside_height_range = height is not None and not self.training_height_range[0] <= height <= self.training_height_range[1]
-        if self.metadata_count and outside_height_range:
+        above_height_range = height is not None and height > self.training_height_range[1]
+        if self.metadata_count and above_height_range:
             load_row = [1.0, features["total_load"]]
             weight = sum(coef * value for coef, value in zip(self.load_only_coefficients, load_row))
         weight = min(130.0, max(40.0, weight))
+        interval_calibration_applied = False
+        if self.interval_samples:
+            interval_row = interval_feature_row(features, height or 175.0)
+            _, target_interval = min(
+                self.interval_samples,
+                key=lambda sample: sum(
+                    ((interval_row[index] - sample[0][index]) / self.interval_scales[index]) ** 2
+                    for index in range(len(interval_row))
+                ),
+            )
+            regression_interval = weight_interval(weight)["index"]
+            if abs(target_interval - regression_interval) == 1:
+                low, high, _ = WEIGHT_BINS[target_interval]
+                weight = max(weight, low) if target_interval > regression_interval else min(weight, high - 0.1)
+                interval_calibration_applied = True
         interval = weight_interval(weight)
         confidence = "calibrated" if self.metadata_count else "fallback"
+        method = "总载荷回归（身高高于训练范围）" if above_height_range else "压力回归"
+        if interval_calibration_applied:
+            method += "+序数近邻校准"
         return {
             "kg": round(weight, 1),
             "interval": interval,
-            "source": (("总载荷回归（身高超出训练范围）" if outside_height_range else "压力回归")
-                       + ("+空载校正" if baseline_applied else "（无空载校正）")) if self.metadata_count else "演示压力启发式估计",
-            "confidence": "calibrated_extrapolation_guard" if outside_height_range else confidence,
+            "source": (method + ("+空载校正" if baseline_applied else "（无空载校正）")) if self.metadata_count else "演示压力启发式估计",
+            "confidence": "calibrated_ordinal" if interval_calibration_applied else "calibrated_extrapolation_guard" if above_height_range else confidence,
             "aggregation": aggregation,
             "baselineApplied": baseline_applied,
             "heightSource": "本地身高输入" if user in self.heights else "默认身高175cm",
+            "intervalCalibrationApplied": interval_calibration_applied,
         }
 
 
@@ -402,6 +440,25 @@ def weight_feature_row(features: dict[str, float], height_cm: float) -> list[flo
         features["sqrt_load"] / max(height_cm, 1.0),
         features["center_row"],
         features["center_col"],
+    ]
+
+
+def interval_feature_row(features: dict[str, float], height_cm: float) -> list[float]:
+    """Pressure-shape features for one-nearest-neighbour ordinal calibration."""
+    return [
+        features["sqrt_load"],
+        features["active_area"],
+        features["mean_pressure"],
+        features["max_pressure"],
+        features["center_row"],
+        features["center_col"],
+        features["row_min"],
+        features["row_max"],
+        features["col_min"],
+        features["col_max"],
+        height_cm,
+        features["sqrt_load"] / max(height_cm, 1.0),
+        features["active_area"] / max(height_cm, 1.0),
     ]
 
 

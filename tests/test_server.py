@@ -3,7 +3,8 @@ import tempfile
 import unittest
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parents[1]))
-from server import COLS, ROWS, airbag_states, demo_frames, metrics, parse_frames
+from server import (COLS, ROWS, airbag_states, demo_frames, metrics, parse_frames,
+                    stable_weight_for)
 
 class ReplayContractTest(unittest.TestCase):
     def test_demo_shape_and_metrics_contract(self):
@@ -27,6 +28,11 @@ class ReplayContractTest(unittest.TestCase):
         finally:
             path.unlink()
         self.assertEqual((len(frames), len(frames[0]), len(frames[0][0])), (1, ROWS, COLS))
+
+    def test_demo_has_no_formal_aggregate_weight(self):
+        result = stable_weight_for("demo")
+        self.assertFalse(result["formalResult"])
+        self.assertEqual(result["userType"]["key"], "demo")
 
     def test_airbags_follow_the_documented_channel_groups(self):
         states = airbag_states([[100] * COLS for _ in range(ROWS)])

@@ -1,5 +1,5 @@
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "region": {
     "seed": 42,
     "train_users": [
@@ -10,68 +10,68 @@
       "gzy"
     ],
     "validation_strategy": "chronological 70/30 blocks per known user and action, with a one-frame guard gap",
-    "validation_samples": 360,
-    "train_samples": 2397,
+    "validation_samples": 432,
+    "train_samples": 2797,
     "train_evaluation_duplicate_frames": 0,
     "labelled_users": 3,
     "criterion": "primary: boundary tolerance row start/end 3/4, col start/end 4/4 cells; IoU >= 0.5 also reported",
     "known_validation": {
-      "parts": 2160,
-      "tolerance_hits": 2160,
-      "exact_hits": 2122,
-      "iou_hits": 2160,
+      "parts": 2592,
+      "tolerance_hits": 2592,
+      "exact_hits": 2554,
+      "iou_hits": 2592,
       "boundary_tolerance_accuracy_pct": 100.0,
-      "exact_box_accuracy_pct": 98.24,
+      "exact_box_accuracy_pct": 98.53,
       "iou_0_5_accuracy_pct": 100.0,
-      "mean_iou": 0.9982
+      "mean_iou": 0.9985
     },
     "new_users": {
-      "parts": 3600,
-      "tolerance_hits": 3256,
+      "parts": 4320,
+      "tolerance_hits": 3666,
       "exact_hits": 117,
-      "iou_hits": 2589,
-      "boundary_tolerance_accuracy_pct": 90.44,
-      "exact_box_accuracy_pct": 3.25,
-      "iou_0_5_accuracy_pct": 71.92,
-      "mean_iou": 0.62
+      "iou_hits": 2763,
+      "boundary_tolerance_accuracy_pct": 84.86,
+      "exact_box_accuracy_pct": 2.71,
+      "iou_0_5_accuracy_pct": 63.96,
+      "mean_iou": 0.5762
     }
   },
   "weight": {
     "known_users": {
       "count": 23,
-      "mae_kg": 4.513,
-      "interval_hit_rate_pct": 60.87,
+      "mae_kg": 3.7,
+      "interval_hit_rate_pct": 95.65,
       "interval_or_adjacent_hit_rate_pct": 95.65,
-      "interval_or_adjacent_3kg_hit_rate_pct": 65.22,
-      "within_3kg_rate_pct": 43.48,
+      "interval_or_adjacent_3kg_hit_rate_pct": 95.65,
+      "within_3kg_rate_pct": 52.17,
       "far_miss_rate_pct": 4.35
     },
     "new_users": {
       "count": 10,
-      "mae_kg": 4.95,
-      "interval_hit_rate_pct": 70.0,
+      "mae_kg": 3.55,
+      "interval_hit_rate_pct": 100.0,
       "interval_or_adjacent_hit_rate_pct": 100.0,
-      "interval_or_adjacent_3kg_hit_rate_pct": 70.0,
-      "within_3kg_rate_pct": 50.0,
+      "interval_or_adjacent_3kg_hit_rate_pct": 100.0,
+      "within_3kg_rate_pct": 60.0,
       "far_miss_rate_pct": 0.0
     },
     "new_user_single_frames": {
       "count": 630,
-      "mae_kg": 9.9,
-      "interval_hit_rate_pct": 36.67,
-      "interval_or_adjacent_hit_rate_pct": 81.9,
-      "interval_or_adjacent_3kg_hit_rate_pct": 40.16,
-      "within_3kg_rate_pct": 18.57,
-      "far_miss_rate_pct": 18.1
+      "mae_kg": 8.982,
+      "interval_hit_rate_pct": 55.87,
+      "interval_or_adjacent_hit_rate_pct": 73.65,
+      "interval_or_adjacent_3kg_hit_rate_pct": 59.05,
+      "within_3kg_rate_pct": 34.76,
+      "far_miss_rate_pct": 26.35
     },
     "new_users_without_baseline": {
       "count": 10,
-      "mae_kg": 5.84,
-      "interval_hit_rate_pct": 40.0,
-      "interval_or_adjacent_hit_rate_pct": 100.0,
-      "interval_or_adjacent_3kg_hit_rate_pct": 50.0,
-      "within_3kg_rate_pct": 30.0,
-      "far_miss_rate_pct": 0.0
+      "mae_kg": 5.45,
+      "interval_hit_rate_pct": 80.0,
+      "interval_or_adjacent_hit_rate_pct": 90.0,
+      "interval_or_adjacent_3kg_hit_rate_pct": 80.0,
+      "within_3kg_rate_pct": 40.0,
+      "far_miss_rate_pct": 10.0
     },
     "train_users": [
       "zmw",
@@ -131,7 +131,7 @@
     "region_new_gt70": true,
     "no_region_duplicate_leakage": true,
     "weight_mae_le5": true,
-    "weight_interval_or_adjacent_ge85": true,
+    "weight_strict_adjacent_3kg_ge85": true,
     "weight_far_miss_lt3": true
   }
 }
